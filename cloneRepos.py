@@ -104,7 +104,8 @@ def import_config():
     config = dict()
     with open(CONFIG_PATH, 'r') as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
-    if len(config['organizations']) == 0 or not config['clone_output_path']: raise RuntimeError("You must fill out the entire configuration file to run the script.\nEdit the configuration file on {CONFIG_PATH}")
+    if not config['organizations']: raise RuntimeError(f"You must add at least one organization to the configuration file.\nEdit the configuration file on {CONFIG_PATH}")
+    if not config['clone_output_path']: raise RuntimeError(f"You must fill out the entire configuration file to run the script.\nEdit the configuration file on {CONFIG_PATH}")
     return {'github_classic_token': config['github_classic_token'], 'clone_output_path': config['clone_output_path'], 'organizations': config['organizations']}
 
 def import_roster():
