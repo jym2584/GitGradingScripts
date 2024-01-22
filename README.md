@@ -1,9 +1,11 @@
 # Grading Scripts for Github Classroom
 This repository contains grading scripts to assist in grading assignments managed by GitHub Classroom. 
 
-Currently, the clone repository script (`cloneRepos.py`) pulls student repositories from a csv file containing the student roster (pulled from GitHub classroom) and handles non submissions.
+Currently, the clone repository script (`cloneRepos.py`) pulls student repositories from a CSV file containing the student roster (pulled from GitHub classroom) and handles nonsubmissions.
 
-Additionally the script assumes that you're already authenticated within the correct GitHub account to run the script and access the organizations of interest.
+Additionally, the script assumes that you're already authenticated within the correct GitHub account to run the script and access the organizations of interest.
+
+Theoretically, this can also work for group assignments. You just have to create & edit the CSV file as needed.
 
 ## Instructions:
 - Clone or download the github repository.
