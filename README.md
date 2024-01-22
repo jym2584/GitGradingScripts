@@ -20,6 +20,8 @@ Additionally the script assumes that you're already authenticated within the cor
     > - Manage multiple classrooms from different organizations
     > - Manage multiple classrooms from the same organization
     > - Want to split the classroom roster from an organization
+- Install the required python dependencies using `pip install -r requirements.txt`
+- Run the python script using `py cloneRepos.py` or the batch script.
 
 ## Future
 - Use tokens to pull git repositories if pulling from different git hosting services
