@@ -3,6 +3,8 @@ This repository contains grading scripts to assist in grading assignments manage
 
 Currently, the clone repository script (`cloneRepos.py`) pulls student repositories from a csv file containing the student roster (pulled from GitHub classroom) and handles non submissions.
 
+Additionally the script assumes that you're already authenticated within the correct GitHub account to run the script and access the organizations of interest.
+
 ## Instructions:
 - Clone or download the github repository.
 - Fill out the configuration file located at `config/config.yml`
