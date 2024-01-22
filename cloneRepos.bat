@@ -1,0 +1,2 @@
+py cloneRepos.py %*
+pause

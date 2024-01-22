@@ -1,0 +1,14 @@
+---
+github_classic_token: "" # your github classic token from https://github.com/settings/tokens
+clone_output_path: "" # Paste the full directory path of where you would like to store cloned repositories at
+###############################################################################
+organization_instructions: |
+  Insert the github organization below to pull repos from the CLI. See the commented example for the format.
+  You can add more than 1 organization for these following example use cases if you:
+    - Manage multiple classrooms from different organizations
+    - Manage multiple classrooms from the same organization
+    - Want to split the classroom roster from an organization
+organizations:
+  # - name: Example Organization (2235) // This can be anything you want. It's just an easier way to identify a class/split if they are in the same organization 
+  #   identifier: example-organization-2235 // GitHub Organization identifier
+  #   roster_path: "E:/GitHub/GithubClassroomScripts/config/2235_example_organization.csv" // full directory path of the classroom roster (from github classroom)
