@@ -4,17 +4,20 @@ This repository contains grading scripts to assist in grading assignments manage
 Currently, the clone repository script (`cloneRepos.py`) pulls student repositories from a CSV file containing the student roster (pulled from GitHub classroom) and handles non-submissions.
 
 The format is (same as the github classroom roster CSV file):
-identifier | github_username
-Last, First | git_username 
-LastFirst | git_username2
+| identifier   | github_username |
+|--------------|------------------|
+| Last, First  | git_username     |
+| LastFirst    | git_username2    |
+
 
 Additionally, the script assumes that you're already authenticated within the correct GitHub account to run the script and access the organizations of interest.
 
 Theoretically, this can also work for group assignments. It would be ideal to create a separate CSV file/organization record, adhering to the format below (same as github classroom):
 
-identifier | github_username
-Group 1 | group_1_repo 
-Group 2 | group_2_repo 
+| identifier | github_username |
+|------------|------------------|
+| Group 1    | group_1_repo     |
+| Group 2    | group_2_repo     |
 
 ## Instructions:
 - Clone or download the github repository.
