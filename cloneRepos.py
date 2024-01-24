@@ -13,9 +13,21 @@ import repo_utils
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+"""
+This script contains logic for cloning git repositories
+
+TODO: 
+- Store stdout/clone logs onto the assignment folder
+- Grade classwork activities more easily
+    - This just would be in the form of supplying a yaml file with a list of files (or probably paths?) to look at, and searches the contents of the file (if there is even a file)
+- Make the roster path optional. If the roster path is left out blank, then it should just clone every git repository in the organization
+- Re-structure code into separate classes/files 
+
+
+"""
 CONFIG_PATH = "config/config.yml"
 CONFIG = dict()
-SUBMISSIONS = dict()
+SUBMISSIONS = dict() # information about student submissions. mapping of the student's git identifier to their number of commits and the commit hash
 ORGANIZATION = None # selected organization from user input
 CLONE_PATH = None # clone_output_path/<organization_name>/
 STUDENTS = dict() # mapping of identifier to student name
