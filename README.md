@@ -22,8 +22,7 @@ Theoretically, this can also work for group assignments. It would be ideal to cr
 ## Instructions:
 - Clone or download the github repository.
 - Fill out the configuration file located at `config/config.yml`
-    > - **github_classic_token**: **You can leave this blank for now.**
-    This will be used for later for authenticating into github repositories by token. This is also used for a later compatibility to pull from multiple git hosting services (github, gitlab, bitbucket)
+    > - **github_classic_token**: This is used for authenticating into github repositories using an access token. A later compatibility will be implemented for running this script on other git hosting services (github, gitlab, bitbucket)
     > - **clone_output_path** : Full directory path (ideal) of where you want to download github repositories to (i.e. "E:/GitHub/assignments-2235/")
     > - **organizations**: Key value pair mapping of the organization's:
     >   - **name**: This can be anything you want. It's just an easier way to identify a class/split if they are in the same organization 
