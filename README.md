@@ -22,8 +22,7 @@ Theoretically, this can also work for group assignments. It would be ideal to cr
 ## Instructions:
 - Clone or download the github repository.
 - Fill out the configuration file located at `config/config.yml`
-    > - **github_classic_token**: **You can leave this blank for now.**
-    This will be used for later for authenticating into github repositories by token. This is also used for a later compatibility to pull from multiple git hosting services (github, gitlab, bitbucket)
+    > - **github_classic_token**: This is used for authenticating into github repositories using an access token. A later compatibility will be implemented for running this script on other git hosting services (github, gitlab, bitbucket)
     > - **clone_output_path** : Full directory path (ideal) of where you want to download github repositories to (i.e. "E:/GitHub/assignments-2235/")
     > - **organizations**: Key value pair mapping of the organization's:
     >   - **name**: This can be anything you want. It's just an easier way to identify a class/split if they are in the same organization 
@@ -40,6 +39,6 @@ Theoretically, this can also work for group assignments. It would be ideal to cr
 ## Future
 - Use tokens to pull git repositories if pulling from different git hosting services
 - Integrate the MOSS script (and possibly [JPlag](https://github.com/jplag/JPlag)) to detect possible plagarism/duplicate code in student submissions
-- Store the commit count for each student to determine if a student repo has been updated since the time of pull (easier for grading)
+- Done! ~~Store the commit count for each student to determine if a student repo has been updated since the time of pull (easier for grading)~~
 - Possible GUI interface?
 - Pull git repositories from a certain date/time. If you're planning to roll back student repositories to a certain date/time, you just have to be aware that commit times can be changed. There's no workaround other than just pulling the repositories at the time of pull or instilling a bit of trust to the students.
