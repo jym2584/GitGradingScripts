@@ -39,6 +39,6 @@ Theoretically, this can also work for group assignments. It would be ideal to cr
 ## Future
 - Use tokens to pull git repositories if pulling from different git hosting services
 - Integrate the MOSS script (and possibly [JPlag](https://github.com/jplag/JPlag)) to detect possible plagarism/duplicate code in student submissions
-- Store the commit count for each student to determine if a student repo has been updated since the time of pull (easier for grading)
+- Done! ~~Store the commit count for each student to determine if a student repo has been updated since the time of pull (easier for grading)~~
 - Possible GUI interface?
 - Pull git repositories from a certain date/time. If you're planning to roll back student repositories to a certain date/time, you just have to be aware that commit times can be changed. There's no workaround other than just pulling the repositories at the time of pull or instilling a bit of trust to the students.
