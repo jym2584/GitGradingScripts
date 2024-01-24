@@ -2,7 +2,7 @@ import yaml
 import subprocess
 from threading import Thread
 import requests
-from git import Repo
+from git import Repo,GitCommandError
 import datetime
 import shutil
 import csv
@@ -10,6 +10,8 @@ import re
 import os
 import time
 import repo_utils
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 CONFIG_PATH = "config/config.yml"
 CONFIG = dict()
@@ -46,9 +48,8 @@ class RepoThread(Thread):
     def run(self):
         # clone the repository
         try: self.clone_repository()
-        except Exception as e:
-            print(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because there is an error while cloning the repository.{WHITE}")
-            print(e)
+        except GitCommandError as gce:
+            self.print_clone_error(gce)
             global STUDENTS_NOT_CLONED
             STUDENTS_NOT_CLONED[self.__git_identifier] = {'student_name': self.__student_name, 'clone_url': self.__clone_url}
             return
@@ -99,7 +100,51 @@ class RepoThread(Thread):
     #     dest = f"{CLONE_PATH}/{self.__assignment_name}-{self.__timestamp_pulled}/1. NO SUBMISSIONS/{self.__assignment_name}-{self.__student_name}"
     #     time.sleep(2)
     #     shutil.move(source, dest)
-                
+    
+    def print_clone_error(self, git_exception: GitCommandError):
+        stderr_dict = parse_git_exception(git_exception)
+        stderr_message = "there is an error while cloning the repository."
+        detailed = True
+        if 'err_remote' in stderr_dict and "Repository not found." in stderr_dict['err_remote']:
+                stderr_message = "the repository doesn't exist."
+                detailed = False
+        if 'err_warning' in stderr_dict and "Clone succeeded, but checkout failed." in stderr_dict['err_warning']: # TODO: force clone the repository (using subprocess?)
+            stderr_message = "there is something wrong with the contents of the repository (clone this repository manually)."
+        print(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because {stderr_message}{WHITE}")
+        if detailed: print(stderr_dict['stderr'])
+            
+
+def parse_git_exception(git_exception: GitCommandError):
+    """Retrieves stderr messages from a git exception
+
+    Args:
+        stderr (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    stderr = git_exception.stderr
+    stderr_dict = {'stderr': stderr}
+    
+    # initialize the types of errors that are thrown by git
+    error = re.compile(r'error: (.+)')
+    error_match = error.search(stderr)
+    if error_match: stderr_dict['err_error'] = error_match.group(1)
+    
+    remote = re.compile(r'remote: (.+)')
+    remote_match = remote.search(stderr)
+    if remote_match: stderr_dict['err_remote'] = remote_match.group(1)
+    
+    fatal = re.compile(r'fatal: (.+)')
+    fatal_match = fatal.search(stderr)
+    if fatal_match: stderr_dict['err_fatal'] = fatal_match.group(1)
+
+    warning = re.compile(r'warning: (.+)')
+    warning_match = warning.search(stderr)
+    if warning_match: stderr_dict['err_warning'] = warning_match.group(1)
+    
+    return stderr_dict
+          
 def import_config():
     """Imports configuration settings from the CONFIG_PATH yaml file
 
@@ -138,9 +183,11 @@ def import_roster():
     if warnings: print(f"\nCheck your classroom roster csv file from `{ORGANIZATION['roster_path']}`\n")
     return students
 
+
+
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
-    
+
 def main():
     global CONFIG
     global ORGANIZATION
