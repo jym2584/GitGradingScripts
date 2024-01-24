@@ -9,15 +9,18 @@ import csv
 import re
 import os
 import time
+import repo_utils
 
 CONFIG_PATH = "config/config.yml"
-CONFIG = {}
+CONFIG = dict()
+SUBMISSIONS = dict()
 ORGANIZATION = None # selected organization from user input
 CLONE_PATH = None # clone_output_path/<organization_name>/
 STUDENTS = dict() # mapping of identifier to student name
 STUDENTS_NO_SUBMISSIONS = dict()
 STUDENTS_NOT_CLONED = dict()
 LIGHT_GREEN = '\033[1;32m' # Ansi code for light_green
+LIGHT_YELLOW = '\033[1;33m' # Ansi code for light_yellow
 LIGHT_RED = '\033[1;31m' # Ansi code for light_red
 WHITE = '\033[0m' # Ansi code for white to reset back to normal text
 # Enable color in cmd
@@ -27,64 +30,57 @@ if os.name == 'nt':
 class RepoThread(Thread):
     """A thread that handles the pulling of student github repositories 
     """
+    global SUBMISSIONS
     
     def __init__(self, identifier, student_name, assignment_name, timestamp_pulled):
         super().__init__()
         self.__git_identifier = identifier
         self.__student_name = student_name 
         self.__assignment_name = assignment_name
-        self.__clone_url = f"https://github.com/{ORGANIZATION['identifier']}/{self.__assignment_name}-{self.__git_identifier}.git"
+        self.__clone_url = f"https://{CONFIG['github_classic_token']}@github.com/{ORGANIZATION['identifier']}/{self.__assignment_name}-{self.__git_identifier}.git"
         self.__timestamp_pulled = timestamp_pulled
         self.__clone_path = f"{CLONE_PATH}/{self.__assignment_name}-{self.__timestamp_pulled}/{self.__assignment_name}-{self.__student_name}"
         self.__repo = None
-        self.__commits = None
+        self.__submission_info = None
     
     def run(self):
         # clone the repository
         try: self.clone_repository()
         except Exception as e:
-            print(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because the repository does not exist.{WHITE}")
+            print(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because there is an error while cloning the repository.{WHITE}")
             print(e)
             global STUDENTS_NOT_CLONED
             STUDENTS_NOT_CLONED[self.__git_identifier] = {'student_name': self.__student_name, 'clone_url': self.__clone_url}
             return
         
-        # checks if there are new commits
-        if not self.submitted():
-            print(f"{LIGHT_RED}Cloned (WITH WARNINGS) {self.__student_name} ({self.__git_identifier}) because there is no submission at the time of pull.{WHITE}")
-            # get before and after pull commits
-            current_commits = 0
-            try: current_commits = len(self.__commits)
-            except: pass
-            print(f"\tNum commits since last pulled: <before> --> {current_commits}") # TODO
-            try:
-                print("\tLatest commit:")
-                print(f"\t\tAuthor:  {self.__commits[0].author}")
-                print(f"\t\tMessage: {self.__commits[0].message}")
-            except:
-                pass
-            print(f"\tClone URL: {self.__clone_url}")
-            global STUDENTS_NO_SUBMISSIONS
-            STUDENTS_NO_SUBMISSIONS[self.__git_identifier] = {'student_name': self.__student_name, 'clone_url': self.__clone_url}
-            #self.delete_repository_soft()
-            return
-    
+        if self.__submission_info:
+            # checks if there are new commits
+            if not self.__submission_info.is_submitted(SUBMISSIONS):
+                print(f"{LIGHT_YELLOW}Cloned (WITH WARNINGS) {self.__student_name} ({self.__git_identifier}) because there is no submission at the time of pull.{WHITE}")
+                # get before and after pull commits
+                print(f"\tCurrent commit: {self.__submission_info.get_commit_hash_stored(SUBMISSIONS)} ({self.__submission_info.get_commit_length_stored(SUBMISSIONS)} total commits)")
+                try:
+                    print(f"\tLatest commit:")
+                    print(f"\t\tHash: {self.__submission_info.get_commit_hash_latest()} ({self.__submission_info.get_commit_length_latest()} total commits)")
+                    print(f"\t\tAuthor:  {self.__submission_info.get_commit_latest().author}")
+                    print(f"\t\tMessage: {self.__submission_info.get_commit_latest().message.strip()}")
+                except: pass
+                print(f"\tClone URL: {self.__clone_url}")
+                global STUDENTS_NO_SUBMISSIONS
+                STUDENTS_NO_SUBMISSIONS[self.__git_identifier] = {'student_name': self.__student_name, 'clone_url': self.__clone_url}
+                #self.delete_repository_soft()
+                return
+            
+            self.__submission_info.update_submission_info(SUBMISSIONS)
+            
         print(f"{LIGHT_GREEN}Cloned {self.__student_name} ({self.__git_identifier}){WHITE}")
     
     def clone_repository(self):
         self.__repo = Repo.clone_from(self.__clone_url, self.__clone_path)
-        self.__commits = list(self.__repo.iter_commits())
         
-    def get_commits(self):
-        return self.__commits
-
-    def submitted(self):
-        # checks if there is no submission
-        if len(self.__commits) == 0 or str(self.__commits[0].author) == "github-classroom[bot]":
-            return False
-        # checks if there are new commits from the last pull
-        return True
-   
+        if CONFIG['log_submissions']:
+            self.__submission_info = repo_utils.Submission(self.__git_identifier, ORGANIZATION['name'], self.__assignment_name, SUBMISSIONS, self.__repo)
+          
     # TODO: Need to resolve PermissionErrors with a process using the git repo (and errors related to moving the .git folder as well)
     # def delete_repository_soft(self):
     #     """Soft deletes the git repository by renaming it into a no submission list
@@ -105,8 +101,8 @@ def import_config():
     with open(CONFIG_PATH, 'r') as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
     if not config['organizations']: raise RuntimeError(f"You must add at least one organization to the configuration file.\nEdit the configuration file on {CONFIG_PATH}")
-    if not config['clone_output_path']: raise RuntimeError(f"You must fill out the entire configuration file to run the script.\nEdit the configuration file on {CONFIG_PATH}")
-    return {'github_classic_token': config['github_classic_token'], 'clone_output_path': config['clone_output_path'], 'organizations': config['organizations']}
+    if not config['clone_output_path'] or not config['github_classic_token']: raise RuntimeError(f"You must fill out the entire configuration file to run the script.\nEdit the configuration file on {CONFIG_PATH}")
+    return {'github_classic_token': config['github_classic_token'], 'clone_output_path': config['clone_output_path'], 'organizations': config['organizations'], 'log_submissions': config['log_submissions']}
 
 def import_roster():
     """Imports the student roster from the selected organization (user input)
@@ -187,9 +183,15 @@ def main():
                 clear_terminal()
                 break
     
+    timestamp_pulled = datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%Y-%H-%M-%S') # github classroom styled format
+    
+    # initialize submission logs
+    if CONFIG['log_submissions']:
+        global SUBMISSIONS
+        SUBMISSIONS = repo_utils.import_submissions(ORGANIZATION['name'], ORGANIZATION['identifier'], timestamp_pulled, assignment_name)
+        
     # pull repos
     threads = []
-    timestamp_pulled = datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%Y-%H-%M-%S') # github classroom styled format
     for identifier, student_name in STUDENTS.items():
         thread = RepoThread(identifier, student_name, assignment_name, timestamp_pulled)
         threads.append(thread)
@@ -208,20 +210,26 @@ def main():
     print("STATISTICS: ")
     print ("-" * 11)
     # cloned
-    print(f"{LIGHT_GREEN}Successfully cloned {len(STUDENTS) - len(STUDENTS_NOT_CLONED)}/{len(threads)} repositories.\n{WHITE}")
-    # not cloned    
-    print(f"{LIGHT_RED}`{len(STUDENTS_NOT_CLONED)}` repositories were not cloned (double check this!):{WHITE}")
-    for identifier, info in STUDENTS_NOT_CLONED.items():
-        print(f"\t{info['student_name']} ({identifier})")
-        print(f"\t\tClone URL: {info['clone_url']}")
+    print(f"{LIGHT_GREEN}Successfully cloned {len(STUDENTS) - len(STUDENTS_NOT_CLONED)}/{len(threads)} repositories...{WHITE}")
+    # not cloned
+    if STUDENTS_NOT_CLONED:
+        print(f"...{LIGHT_RED}`{len(STUDENTS_NOT_CLONED)}` of which were not cloned (double check this!):{WHITE}")
+        for identifier, info in STUDENTS_NOT_CLONED.items():
+            print(f"\t{info['student_name']} ({identifier})")
+            print(f"\t\tClone URL: {info['clone_url']}")
     print()
     # no submissions
-    print(f"{LIGHT_RED}`{len(STUDENTS_NO_SUBMISSIONS)}` of which did not have an active submission since time of pull ({timestamp_pulled}):{WHITE}")
-    for identifier, info in STUDENTS_NO_SUBMISSIONS.items():
-        print(f"\t{info['student_name']} ({identifier})")
-        print(f"\t\tClone URL: {info['clone_url']}")
-    print()
-    #print("Uploaded submission logs to config/submissions.yml.")
+    if STUDENTS_NO_SUBMISSIONS:
+        print(f"{LIGHT_YELLOW}`{len(STUDENTS_NO_SUBMISSIONS)}` of which did not have an active submission since time of pull ({timestamp_pulled}):{WHITE}")
+        for identifier, info in STUDENTS_NO_SUBMISSIONS.items():
+            print(f"\t{info['student_name']} ({identifier})")
+            #print(f"\t\tClone URL: {info['clone_url']}")
+        print()
+    
+    # log submissions
+    if CONFIG['log_submissions']:
+        repo_utils.save_submissions(SUBMISSIONS)
+        print(f"Uploaded submission logs to {repo_utils.SUBMISSION_LOGS}.")
 
 if __name__ == "__main__":
     main()
