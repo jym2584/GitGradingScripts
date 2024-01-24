@@ -1,5 +1,5 @@
 ---
-#github_classic_token: "" # your github classic token from https://github.com/settings/tokens
+github_classic_token: "" # your github classic token from https://github.com/settings/tokens
 clone_output_path: "" # Paste the full directory path of where you would like to store cloned repositories at
 ###############################################################################
 organization_instructions: |
