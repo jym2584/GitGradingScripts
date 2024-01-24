@@ -76,6 +76,15 @@ class RepoThread(Thread):
         print(f"{LIGHT_GREEN}Cloned {self.__student_name} ({self.__git_identifier}){WHITE}")
     
     def clone_repository(self):
+        """Clones a repository
+        
+        TODO: Try cloning through subprocess if getting the below warning
+        error: invalid path 'src/main/java/unit01/scavenger_hunt/CA ALTERNATIVE?.png'
+        fatal: unable to checkout working tree
+        warning: Clone succeeded, but checkout failed.
+        You can inspect what was checked out with 'git status'
+        and retry with 'git restore --source=HEAD :/'
+        """
         self.__repo = Repo.clone_from(self.__clone_url, self.__clone_path)
         
         if CONFIG['log_submissions']:
