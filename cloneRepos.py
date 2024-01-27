@@ -99,7 +99,6 @@ class RepoThread(Thread):
         and retry with 'git restore --source=HEAD :/'
         """
         self.__repo = Repo.clone_from(self.__clone_url, self.__clone_path)
-        
         if CONFIG['log_submissions']:
             self.__submission_info = repo_utils.Submission(self.__git_identifier, ORGANIZATION['name'], self.__assignment_name, SUBMISSIONS, self.__repo)
           
@@ -167,8 +166,8 @@ def import_config():
     with open(CONFIG_PATH, 'r') as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
     if not config['organizations']: raise RuntimeError(f"You must add at least one organization to the configuration file.\nEdit the configuration file on {CONFIG_PATH}")
-    if not config['clone_output_path'] or not config['github_classic_token']: raise RuntimeError(f"You must fill out the entire configuration file to run the script.\nEdit the configuration file on {CONFIG_PATH}")
-    return {'github_classic_token': config['github_classic_token'], 'clone_output_path': config['clone_output_path'], 'organizations': config['organizations'], 'log_submissions': config['log_submissions']}
+    if not config['clone_output_path'] or not config['github_classic_token']: raise RuntimeError(f"You must fill out the REQUIRED variables on the config file to run the script.\nEdit the config file on {CONFIG_PATH}")
+    return config
 
 def import_roster():
     """Imports the student roster from the selected organization (user input)
