@@ -1,7 +1,11 @@
 ---
 # REQUIRED
-github_classic_token: "" # your github classic token from https://github.com/settings/tokens
+github_classic_token_instructions: |
+  Generate a CLASSIC token from https://github.com/settings/tokens
+  Grant the token all permissions from the parent `repo` scope.
+github_classic_token: "" # Read the instructions above 
 clone_output_path: "" # Paste the full directory path of where you would like to store cloned repositories at
+
 # OPTIONAL
 log_submissions: yes # Whether you want to keep track if a student has submitted something. If there is no submission at the time of pull, it will let you know (the repo will still be cloned) 
 ###############################################################################
