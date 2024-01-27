@@ -200,6 +200,16 @@ def import_roster():
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def is_token_valid(token):
+    """Checks if the provided GitHub token is valid
+
+    Args:
+        token (str): the github token
+    """
+    request = requests.get("https://api.github.com/user", headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'})
+    return request.ok
+    
+    
 def main():
     global CONFIG
     global ORGANIZATION
@@ -208,6 +218,13 @@ def main():
     clear_terminal()
     print(f"Importing config from {CONFIG_PATH}...\n")
     CONFIG = import_config()
+    
+    # check if the token is valid
+    token_valid = is_token_valid(CONFIG['github_classic_token'])
+    if not token_valid:
+        print(f"{LIGHT_RED}(!) Your GitHub access token is invalid.{WHITE}")
+        print("Ensure that the token has 1) not expired and/or 2) your token has been granted sufficient permissions to read and clone git repositories.")
+        return
     
     confirm_organization = False
     assignment_name = None
