@@ -27,8 +27,8 @@ class Submission:
         self.__commits = list(self.__repo.iter_commits())
         
         # Add the student to the submissions dictionary if their repository is being pulled for the first time
-        if self.__git_identifier not in submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]:
-            submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name][self.__git_identifier] = {'num_commits': 0, 'commit_hash': None}
+        if self.__git_identifier not in submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions']:
+            submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions'][self.__git_identifier] = {'num_commits': 0, 'commit_hash': None}
 
     @synchronized
     def update_submission_info(self, submissions_dict: dict):
@@ -37,8 +37,8 @@ class Submission:
         Args:
             submissions_dict (dict): Submissions dictionary
         """  
-        submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name][self.__git_identifier]['num_commits'] = self.get_commit_length_latest()
-        submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name][self.__git_identifier]['commit_hash'] = self.get_commit_hash_latest()
+        submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions'][self.__git_identifier]['num_commits'] = self.get_commit_length_latest()
+        submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions'][self.__git_identifier]['commit_hash'] = self.get_commit_hash_latest()
 
     def get_commits(self):
         return self.__commits
@@ -58,7 +58,7 @@ class Submission:
         Returns:
             str: Commit hash
         """
-        return submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name][self.__git_identifier]['commit_hash']
+        return submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions'][self.__git_identifier]['commit_hash']
 
     def get_commit_length_latest(self) -> int:
         return len(self.__commits)
@@ -72,7 +72,7 @@ class Submission:
         Returns:
             int: number of commits stored for the user
         """
-        return submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name][self.__git_identifier]['num_commits']
+        return submissions_dict['organizations'][self.__organization_name]['submission_history'][self.__assignment_name]['submissions'][self.__git_identifier]['num_commits']
     
     def is_submitted(self, submissions_dict:dict) -> bool:
         """Checks if there is a submission
@@ -108,11 +108,22 @@ def import_submissions(organization_name, organization_identifier, timestamp_pul
             config['organizations'] = dict()
         
         if organization_name not in config['organizations']:
-            config['organizations'][organization_name] = {'identifier': organization_identifier, 'last_pulled': None,'submission_history': dict()}
-        config['organizations'][organization_name]['last_pulled'] = timestamp_pulled
-        if assignment_name not in config['organizations'][organization_name]['submission_history']:
-            config['organizations'][organization_name]['submission_history'] = {assignment_name: dict()}
+            config['organizations'][organization_name] = {
+                'identifier': organization_identifier, 
+                'submission_history': dict()
+            }
         
+        # add new assignment
+        if assignment_name not in config['organizations'][organization_name]['submission_history']:
+            config['organizations'][organization_name]['submission_history'].update({
+                assignment_name: {
+                    'last_pulled': None,
+                    'submissions': dict()
+                } 
+            })
+            
+        config['organizations'][organization_name]['submission_history'][assignment_name]['last_pulled'] = timestamp_pulled
+
     return config 
 
 def save_submissions(submissions_dict: dict):
