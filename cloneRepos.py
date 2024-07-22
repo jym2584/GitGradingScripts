@@ -11,6 +11,7 @@ import os
 import time
 import repo_utils
 import pprint
+import logging
 pp = pprint.PrettyPrinter(indent=4)
 
 """
@@ -37,9 +38,18 @@ LIGHT_GREEN = '\033[1;32m' # Ansi code for light_green
 LIGHT_YELLOW = '\033[1;33m' # Ansi code for light_yellow
 LIGHT_RED = '\033[1;31m' # Ansi code for light_red
 WHITE = '\033[0m' # Ansi code for white to reset back to normal text
-# Enable color in cmd
-if os.name == 'nt':
-    os.system('color')
+if os.name == 'nt': os.system('color') # Enable color in cmd
+
+# Logging
+log_mode = logging.INFO
+logger = logging.getLogger(__name__)
+logger.setLevel(log_mode)
+# print to stdout
+console_handler = logging.StreamHandler() #
+console_handler.setLevel(log_mode)
+logger.addHandler(console_handler)
+# write to file
+file_handler = None
 
 class RepoThread(Thread):
     """A thread that handles the pulling of student github repositories 
@@ -69,16 +79,16 @@ class RepoThread(Thread):
         if self.__submission_info:
             # checks if there are new commits
             if not self.__submission_info.is_submitted(SUBMISSIONS):
-                print(f"{LIGHT_YELLOW}Cloned (WITH WARNINGS) {self.__student_name} ({self.__git_identifier}) because there is no submission at the time of pull.{WHITE}")
+                logger.info(f"{LIGHT_YELLOW}Cloned (WITH WARNINGS) {self.__student_name} ({self.__git_identifier}) because there is no submission at the time of pull.{WHITE}")
                 # get before and after pull commits
-                print(f"\tCurrent commit: {self.__submission_info.get_commit_hash_stored(SUBMISSIONS)} ({self.__submission_info.get_commit_length_stored(SUBMISSIONS)} total commits)")
+                logger.info(f"\tCurrent commit: {self.__submission_info.get_commit_hash_stored(SUBMISSIONS)} ({self.__submission_info.get_commit_length_stored(SUBMISSIONS)} total commits)")
                 try:
-                    print(f"\tLatest commit:")
-                    print(f"\t\tHash: {self.__submission_info.get_commit_hash_latest()} ({self.__submission_info.get_commit_length_latest()} total commits)")
-                    print(f"\t\tAuthor:  {self.__submission_info.get_commit_latest().author}")
-                    print(f"\t\tMessage: {self.__submission_info.get_commit_latest().message.strip()}")
+                    logger.info(f"\tLatest commit:")
+                    logger.info(f"\t\tHash: {self.__submission_info.get_commit_hash_latest()} ({self.__submission_info.get_commit_length_latest()} total commits)")
+                    logger.info(f"\t\tAuthor:  {self.__submission_info.get_commit_latest().author}")
+                    logger.info(f"\t\tMessage: {self.__submission_info.get_commit_latest().message.strip()}")
                 except: pass
-                print(f"\tClone URL: {self.__clone_url}")
+                logger.info(f"\tClone URL: {self.__clone_url}")
                 global STUDENTS_NO_SUBMISSIONS
                 STUDENTS_NO_SUBMISSIONS[self.__git_identifier] = {'student_name': self.__student_name, 'clone_url': self.__clone_url}
                 #self.delete_repository_soft()
@@ -86,7 +96,7 @@ class RepoThread(Thread):
             
             self.__submission_info.update_submission_info(SUBMISSIONS)
             
-        print(f"{LIGHT_GREEN}Cloned {self.__student_name} ({self.__git_identifier}){WHITE}")
+        logger.info(f"{LIGHT_GREEN}Cloned {self.__student_name} ({self.__git_identifier}){WHITE}")
     
     def clone_repository(self):
         """Clones a repository
@@ -121,8 +131,8 @@ class RepoThread(Thread):
                 detailed = False
         if 'err_warning' in stderr_dict and "Clone succeeded, but checkout failed." in stderr_dict['err_warning']: # TODO: force clone the repository (using subprocess?)
             stderr_message = "there is something wrong with the contents of the repository (clone this repository manually)."
-        print(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because {stderr_message}{WHITE}")
-        if detailed: print(stderr_dict['stderr'])
+        logger.info(f"{LIGHT_RED}Skipping {self.__student_name} ({self.__git_identifier}) because {stderr_message}{WHITE}")
+        if detailed: logger.info(stderr_dict['stderr'])
             
 
 def parse_git_exception(git_exception: GitCommandError):
@@ -207,7 +217,20 @@ def is_token_valid(token):
     """
     request = requests.get("https://api.github.com/user", headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'})
     return request.ok
-    
+
+def logging_filter_ansi(record):
+    """Helper function to remote ansi codes from logging print statements
+
+    Args:
+        record (str): logging input stream
+
+    Returns:
+        bool: Always filter
+    """
+    ansi_escape = re.compile(r'\x1b\[([0-9]+)(;[0-9]+)*m')
+    record.msg = ansi_escape.sub('', record.msg)
+    return True
+
     
 def main():
     global CONFIG
@@ -273,7 +296,19 @@ def main():
     if CONFIG['log_submissions']:
         global SUBMISSIONS
         SUBMISSIONS = repo_utils.import_submissions(ORGANIZATION['name'], ORGANIZATION['identifier'], timestamp_pulled, assignment_name)
-        
+    
+    
+    assignment_clone_path = f"{CLONE_PATH}/{assignment_name}-{timestamp_pulled}"
+    os.makedirs(assignment_clone_path)
+    
+    # init file handler to write stdout to file
+    global file_handler
+    file_handler = logging.FileHandler(f"{assignment_clone_path}/README.md")
+    file_handler.setLevel(log_mode)
+    file_handler.addFilter(logging_filter_ansi)
+    logger.addHandler(file_handler)
+    
+    
     # pull repos
     threads = []
     for identifier, student_name in STUDENTS.items():
@@ -281,39 +316,39 @@ def main():
         threads.append(thread)
 
     print()
-    clone_message = f"Cloning to: `{CLONE_PATH}/{assignment_name}-{timestamp_pulled}/`..."
-    print("-" * len(clone_message))
-    print(clone_message)
-    print(f"Timestamp pulled: {timestamp_pulled}")
-    print("-" * len(clone_message))
+    clone_message = f"Cloning to: `{assignment_clone_path}/`..."
+    logger.info("-" * len(clone_message))
+    logger.info(clone_message)
+    logger.info(f"Timestamp pulled: {timestamp_pulled}")
+    logger.info("-" * len(clone_message))
     for thread in threads: thread.start()
     for thread in threads: thread.join()
     
     # Statistics
-    print ("-" * 11)
-    print("STATISTICS: ")
-    print ("-" * 11)
+    logger.info("-" * 11)
+    logger.info("STATISTICS: ")
+    logger.info("-" * 11)
     # cloned
-    print(f"{LIGHT_GREEN}Successfully cloned {len(STUDENTS) - len(STUDENTS_NOT_CLONED)}/{len(threads)} repositories...{WHITE}")
+    logger.info(f"{LIGHT_GREEN}Successfully cloned {len(STUDENTS) - len(STUDENTS_NOT_CLONED)}/{len(threads)} repositories...{WHITE}")
     # not cloned
     if STUDENTS_NOT_CLONED:
-        print(f"...{LIGHT_RED}`{len(STUDENTS_NOT_CLONED)}` of which were not cloned (double check this!):{WHITE}")
+        logger.info(f"...{LIGHT_RED}`{len(STUDENTS_NOT_CLONED)}` of which were not cloned (double check this!):{WHITE}")
         for identifier, info in STUDENTS_NOT_CLONED.items():
-            print(f"\t{info['student_name']} ({identifier})")
-            print(f"\t\tClone URL: {info['clone_url']}")
-    print()
+            logger.info(f"\t{info['student_name']} ({identifier})")
+            logger.info(f"\t\tClone URL: {info['clone_url']}")
+    logger.info("")
     # no submissions
     if STUDENTS_NO_SUBMISSIONS:
-        print(f"{LIGHT_YELLOW}`{len(STUDENTS_NO_SUBMISSIONS)}` of which did not have an active submission since time of pull ({timestamp_pulled}):{WHITE}")
+        logger.info(f"{LIGHT_YELLOW}`{len(STUDENTS_NO_SUBMISSIONS)}` of which did not have an active submission since time of pull ({timestamp_pulled}):{WHITE}")
         for identifier, info in STUDENTS_NO_SUBMISSIONS.items():
-            print(f"\t{info['student_name']} ({identifier})")
+            logger.info(f"\t{info['student_name']} ({identifier})")
             #print(f"\t\tClone URL: {info['clone_url']}")
-        print()
+        logger.info("")
     
     # log submissions
     if CONFIG['log_submissions']:
         repo_utils.save_submissions(SUBMISSIONS)
-        print(f"Uploaded submission logs to {repo_utils.SUBMISSION_LOGS}.")
+        logger.info(f"Uploaded submission logs to {repo_utils.SUBMISSION_LOGS}.")
 
 if __name__ == "__main__":
     main()
